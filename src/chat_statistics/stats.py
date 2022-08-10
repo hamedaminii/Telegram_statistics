@@ -26,7 +26,12 @@ class Chatstatistics:
         self.stop_words = list(map(str.strip, stop_words))
 
 
-    def generate_wordcloud(self, output_dir = Union[str, Path], width = 5000, height = 4000):
+    def generate_wordcloud(
+        self, 
+        output_dir = Union[str, Path], 
+        width: int = 1000, height: int = 800,
+        max_font_size: int = 250,
+        ): 
         """Generating wordcloud from chat_Json file0
         :param output_dir: saving directory of wordcloud image
         :param width: wordcloud width
@@ -48,6 +53,7 @@ class Chatstatistics:
         logger.info('Generating word cloud')
         wordcloud = WordCloud( 
             width= self.width, height = self.height,
+            max_font_size = max_font_size,
             font_path = str(DATA_DIR / 'font.ttf'),
             ).generate(text_content)
         logger.info(f'Saving word cloud to {output_dir}')
@@ -58,5 +64,5 @@ class Chatstatistics:
 chatstats = Chatstatistics(chat_Json = DATA_DIR / 'result-koperz.json') 
 chatstats.generate_wordcloud(output_dir = DATA_DIR)
 
-print(' Niiice Done !!!!') 
+print('Done !') 
 
