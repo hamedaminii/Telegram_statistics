@@ -1,13 +1,14 @@
+import json
+from collections import Counter, defaultdict
 from typing import Union
 from pathlib import Path
-import json
+from loguru import logger
 from src.data import DATA_DIR
 
-from collections import Counter
 from wordcloud import WordCloud
 from bidi.algorithm import get_display
 import arabic_reshaper
-from loguru import logger
+
 
 
 class Chatstatistics:
@@ -23,8 +24,53 @@ class Chatstatistics:
         # reading stop_words
         logger.info(f"loading stopwords from {DATA_DIR / 'Stop_words.txt'}")
         stop_words = open(DATA_DIR / 'Stop_words.txt').readlines()
-        self.stop_words = list(map(str.strip, stop_words))
+        self.stop_words = set(map(str.strip, stop_words))
 
+    @staticmethod
+    def rebuild_messages(sub_messages):
+        """Rebuild masseges with unsuitable content
+        """
+        msg_txt = ''
+        for sub in sub_messages:
+            if isinstance(sub, str):
+                msg_txt += sub
+            elif 'text' in sub:
+                msg_txt += sub['text']
+        return msg_txt
+
+    def msg_has_question(self, msg):
+        """The message is question or not?
+        :param msg: message to check
+        """
+        if not isinstance(msg['text'], str):
+            msg['text'] = self.rebuild_messages(msg['text'])
+        if ('?' in msg['text']) or ('؟' in msg['text']):
+            return True
+    
+
+    def get_top_users(self, top_n: int = 10) :
+        """identifying top users
+        :param top_n: numbert of top users, defaults to 10
+        :return: dict of top users
+        """
+        is_question = defaultdict(bool)
+        for msg in self.chat_data['messages']:
+            if not isinstance(msg['text'], str):
+                msg['text'] = self.rebuild_messages(msg['text'])
+            if ('?' in msg['text']) or ('؟' in msg['text']):
+                is_question[msg['id']] = True
+
+        logger.info("Getting top users")
+        Reply_Users = []
+        for msg in self.chat_data['messages']:
+            if not msg.get('from'):
+                continue
+            if not msg.get('reply_to_message_id'):
+                continue
+            if is_question[msg['reply_to_message_id']] is False:
+                continue
+            Reply_Users.append(msg['from'])
+        return dict(Counter(Reply_Users).most_common(top_n))
 
     def generate_wordcloud(
         self, 
@@ -49,6 +95,7 @@ class Chatstatistics:
                 text_content += f" {' '.join(tokens)}"
         
         text_content = arabic_reshaper.reshape(text_content)
+        text_content = get_display(text_content)
         #Generating wordcloud
         logger.info('Generating word cloud')
         wordcloud = WordCloud( 
@@ -63,6 +110,8 @@ class Chatstatistics:
 
 chatstats = Chatstatistics(chat_Json = DATA_DIR / 'result-koperz.json') 
 chatstats.generate_wordcloud(output_dir = DATA_DIR)
+top_users = chatstats.get_top_users()
+print(top_users)
 
 print('Done !') 
 
