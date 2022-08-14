@@ -61,6 +61,7 @@ class Chatstatistics:
                 is_question[msg['id']] = True
 
         logger.info("Getting top users")
+        # top users based on replying to question messages
         Reply_Users = []
         for msg in self.chat_data['messages']:
             if not msg.get('from'):
